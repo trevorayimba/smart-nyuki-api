@@ -3,20 +3,22 @@ import requests
 import streamlit as st
 import pandas as pd
 
-# Point to your API service (change if your API Render URL is different)
-API_URL = "https://smart-nyuki-api.onrender.com"
+# Point to your API service URL
+API_BASE = "https://smart-nyuki-api.onrender.com"
 
 st.set_page_config(page_title="SMART NYUKI", layout="wide")
 st.title("🐝 SMART NYUKI - Live Dashboard")
 
-# Fetch data from API
+# Fetch all hives from API
 try:
-    response = requests.get(f"{API_URL}/hives")  # Add this endpoint in API if needed
+    response = requests.get(f"{API_BASE}/hives")
     if response.status_code == 200:
-        df = pd.DataFrame(response.json())
+        hives_data = response.json()
+        df = pd.DataFrame(hives_data)
     else:
         df = pd.DataFrame()
-except:
+except Exception as e:
+    st.error(f"Error fetching data: {e}")
     df = pd.DataFrame()
 
 if df.empty:
@@ -36,14 +38,16 @@ else:
                 st.progress(level / 100)
                 st.caption(f"{level}% full")
             with col2:
-                if level >= 50:
+                if level >= 50 and not extracting:
                     if st.button("HARVEST HONEY", key=f"btn_{hive_id}", type="primary"):
                         # Send harvest command to API
-                        harvest_response = requests.post(f"{API_URL}/beehive/{hive_id}/harvest")
+                        harvest_response = requests.post(f"{API_BASE}/beehive/{hive_id}/harvest")
                         if harvest_response.status_code == 200:
                             st.success(f"Harvest command sent to Hive {hive_id}!")
                         else:
                             st.error("Failed to send harvest command")
+                elif extracting:
+                    st.button("Harvesting...", disabled=True)
                 else:
                     st.button("Not Ready", disabled=True)
 
